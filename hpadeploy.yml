@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpadeployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpapod
+  template:
+    metadata:
+      labels:
+        app: hpapod
+    spec:
+      containers:
+        - name: hpapod
+          image: docker.io/datawire/quote:0.4.1
+          ports:
+            - name: hpapodcontainer
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 200m
+              memory: 100Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpapod
+spec:
+  ports:
+    - name: hpapodsvc
+      port: 80
+      targetPort: 8080
+  selector:
+    app: hpapod
+  type: NodePort
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpapod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpadeployment
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
